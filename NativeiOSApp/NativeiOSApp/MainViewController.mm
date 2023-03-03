@@ -71,6 +71,7 @@ AppDelegate* hostDelegate = NULL;
 @property (nonatomic, strong) UIButton *unpauseBtn;
 @property (nonatomic, strong) UIButton *unloadBtn;
 @property (nonatomic, strong) UIButton *quitBtn;
+@property (nonatomic, strong) UIButton *winSizeBtn;
 @end
 
 @implementation MyViewController
@@ -114,6 +115,17 @@ AppDelegate* hostDelegate = NULL;
     self.quitBtn.backgroundColor = [UIColor redColor];
     [self.quitBtn addTarget: hostDelegate action: @selector(quitButtonTouched:) forControlEvents: UIControlEventPrimaryActionTriggered];
     [self.view addSubview: self.quitBtn];
+    
+    // Change unity windows size
+    // Add by lijia
+    self.winSizeBtn = [UIButton buttonWithType: UIButtonTypeSystem];
+    [self.winSizeBtn setTitle: @"WinSize" forState: UIControlStateNormal];
+    self.winSizeBtn.frame = CGRectMake(250, 0, 100, 44);
+    self.winSizeBtn.center = CGPointMake(250, 220);
+    self.winSizeBtn.backgroundColor = [UIColor redColor];
+    [self.winSizeBtn addTarget: hostDelegate action: @selector(winSizeButtonTouched:) forControlEvents: UIControlEventPrimaryActionTriggered];
+    [self.view addSubview: self.winSizeBtn];
+
 }
 
 - (void)didReceiveMemoryWarning
@@ -274,6 +286,22 @@ NSDictionary* appLaunchOpts;
     [self setUfw: nil];
     [self setDidQuit:true];
     [self showHostMainWindow:@""];
+}
+
+// Add by lijia
+- (void)winSizeButtonTouched:(UIButton *)sender
+{
+    if(![self unityIsInitialized]) {
+        showAlert(@"Unity is not initialized", @"Initialize Unity first");
+        return;
+    }
+    
+    // UnityFramework* ufw = [bundle.principalClass getInstance];
+
+    UnityAppController* uac = [[self ufw] appController];
+    UnityView* unityView = [uac unityView];
+    ((UIView* )unityView).frame = CGRectMake(10, 150, 300, 300);
+//    UIView* uiView = [uas view]
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application { [[[self ufw] appController] applicationWillResignActive: application]; }
