@@ -8,6 +8,7 @@
 @required
 - (void) showHostMainWindow:(NSString*)color;
 // other methods
+- (void) changeUnityWindowSize:(NSString*)reason x:(int)x y:(int)y w:(int)w h:(int)h;
 @end
 
 __attribute__ ((visibility("default")))

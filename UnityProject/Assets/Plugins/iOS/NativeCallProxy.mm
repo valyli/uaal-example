@@ -17,3 +17,7 @@ extern "C" {
     void showHostMainWindow(const char* color) { return [api showHostMainWindow:[NSString stringWithUTF8String:color]]; }
 }
 
+extern "C" {
+    void changeUnityWindowSize(const char* reason, int x, int y, int w, int h) {  [api changeUnityWindowSize:[NSString stringWithUTF8String:reason] x:x y:y w:w h:h]; }
+}
+

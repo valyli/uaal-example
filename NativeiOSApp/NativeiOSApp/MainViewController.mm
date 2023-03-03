@@ -168,6 +168,19 @@ NSDictionary* appLaunchOpts;
     [self.window makeKeyAndVisible];
 }
 
+// Add by lijia
+- (void) changeUnityWindowSize:(NSString*)reason x:(int)x y:(int)y w:(int)w h:(int)h
+{
+    if(![self unityIsInitialized]) {
+        showAlert(@"Unity is not initialized", @"Initialize Unity first");
+        return;
+    }
+    
+    UnityAppController* uac = [[self ufw] appController];
+    UnityView* unityView = [uac unityView];
+    ((UIView* )unityView).frame = CGRectMake(x, y, w, h);
+}
+
 - (void)sendMsgToUnity
 {
     [[self ufw] sendMessageToGOWithName: "Cube" functionName: "ChangeColor" message: "yellow"];

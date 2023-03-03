@@ -9,6 +9,9 @@ using UnityEngine;
 public class NativeAPI {
     [DllImport("__Internal")]
     public static extern void showHostMainWindow(string lastStringColor);
+
+    [DllImport("__Internal")]
+    public static extern void changeUnityWindowSize(string reason, int x, int y, int w, int h);
 }
 #endif
 
@@ -57,6 +60,24 @@ public class Cube : MonoBehaviour
 #endif
     }
 
+    void changeUnityWindowSize(string reason, int x, int y, int w, int h)
+    {
+#if UNITY_ANDROID
+        try
+        {
+            AndroidJavaClass jc = new AndroidJavaClass("com.company.product.OverrideUnityActivity");
+            AndroidJavaObject overrideActivity = jc.GetStatic<AndroidJavaObject>("instance");
+            overrideActivity.Call("changeUnityWindowSize", x, y, w, h);
+        } catch(Exception e)
+        {
+            appendToText("Exception during changeUnityWindowSize");
+            appendToText(e.Message);
+        }
+#elif UNITY_IOS || UNITY_TVOS
+        NativeAPI.changeUnityWindowSize(reason, x, y, w, h);
+#endif
+    }
+
     void OnGUI()
     {
         GUIStyle style = new GUIStyle("button");
@@ -67,6 +88,7 @@ public class Cube : MonoBehaviour
 
         if (GUI.Button(new Rect(10, 400, 400, 100), "Unload", style)) Application.Unload();
         if (GUI.Button(new Rect(440, 400, 400, 100), "Quit", style)) Application.Quit();
+        if (GUI.Button(new Rect(10, 500, 400, 100), "WinSize", style)) changeUnityWindowSize("From unity", 50, 250, 400, 400);
     }
 }
 
