@@ -23,7 +23,9 @@ public class NativeAPI {
 
 public class Cube : MonoBehaviour
 {
-    public Text text;    
+    public Text text;
+    private string m_inputText = "Unity Input";
+    
     void appendToText(string line) { text.text += line + "\n"; }
 
     void Update()
@@ -122,10 +124,11 @@ public class Cube : MonoBehaviour
 
     void OnGUI()
     {
-        int maxLine = 20;
+        int maxLine = 23;
         GUIStyle customStyle = new GUIStyle("button");
         customStyle.fontSize = (int)(Screen.height / maxLine);
         GUI.skin.button = customStyle;
+        GUI.skin.textField = customStyle;
         
         GUILayout.Label("Test in Unity");
         GUILayout.BeginVertical("box");
@@ -156,6 +159,8 @@ public class Cube : MonoBehaviour
         GUILayout.Label("Focus");
         GUILayout.BeginVertical("box");
         {
+            m_inputText = GUILayout.TextField(m_inputText);
+
             if (GUILayout.Button("ClearFocus")) setViewFocus("From unity", "", true);
             if (GUILayout.Button("FocusText1")) setViewFocus("From unity", "TextField1", true);
             if (GUILayout.Button("FocusText2")) setViewFocus("From unity", "TextField2", true);
