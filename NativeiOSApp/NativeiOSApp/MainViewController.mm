@@ -72,6 +72,11 @@ AppDelegate* hostDelegate = NULL;
 @property (nonatomic, strong) UIButton *unloadBtn;
 @property (nonatomic, strong) UIButton *quitBtn;
 @property (nonatomic, strong) UIButton *winSizeBtn;
+@property (nonatomic, strong) UIButton *clearFocusBtn;
+@property (nonatomic, strong) UIButton *focusBtn1;
+@property (nonatomic, strong) UIButton *focusBtn2;
+@property (nonatomic, strong) UITextField *textField1;
+@property (nonatomic, strong) UITextField *textField2;
 @end
 
 @implementation MyViewController
@@ -79,6 +84,7 @@ AppDelegate* hostDelegate = NULL;
 {
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor blueColor];
+    self.view.frame = CGRectMake(0, 0, [UIScreen mainScreen].bounds.size.width, 300);
     
     // INIT UNITY
     self.unityInitBtn = [UIButton buttonWithType: UIButtonTypeSystem];
@@ -117,7 +123,6 @@ AppDelegate* hostDelegate = NULL;
     [self.view addSubview: self.quitBtn];
     
     // Change unity windows size
-    // Add by lijia
     self.winSizeBtn = [UIButton buttonWithType: UIButtonTypeSystem];
     [self.winSizeBtn setTitle: @"WinSize" forState: UIControlStateNormal];
     self.winSizeBtn.frame = CGRectMake(250, 0, 100, 44);
@@ -125,7 +130,41 @@ AppDelegate* hostDelegate = NULL;
     self.winSizeBtn.backgroundColor = [UIColor redColor];
     [self.winSizeBtn addTarget: hostDelegate action: @selector(winSizeButtonTouched:) forControlEvents: UIControlEventPrimaryActionTriggered];
     [self.view addSubview: self.winSizeBtn];
+    
+    // Add new view for focus-testing
+    self.clearFocusBtn = [UIButton buttonWithType: UIButtonTypeSystem];
+    [self.clearFocusBtn setTitle: @"ClearFocus" forState: UIControlStateNormal];
+    self.clearFocusBtn.frame = CGRectMake(250, 0, 100, 44);
+    self.clearFocusBtn.center = CGPointMake(350, 120);
+    self.clearFocusBtn.backgroundColor = [UIColor yellowColor];
+    [self.clearFocusBtn addTarget: hostDelegate action: @selector(removeFocusButtonTouched:) forControlEvents: UIControlEventPrimaryActionTriggered];
+    [self.view addSubview: self.clearFocusBtn];
 
+    self.focusBtn1 = [UIButton buttonWithType: UIButtonTypeSystem];
+    [self.focusBtn1 setTitle: @"SetFocus1" forState: UIControlStateNormal];
+    self.focusBtn1.frame = CGRectMake(250, 0, 100, 44);
+    self.focusBtn1.center = CGPointMake(350, 170);
+    self.focusBtn1.backgroundColor = [UIColor yellowColor];
+    [self.focusBtn1 addTarget: hostDelegate action: @selector(setFocusButtonTouched1:) forControlEvents: UIControlEventPrimaryActionTriggered];
+    [self.view addSubview: self.focusBtn1];
+
+    self.focusBtn2 = [UIButton buttonWithType: UIButtonTypeSystem];
+    [self.focusBtn2 setTitle: @"SetFocus2" forState: UIControlStateNormal];
+    self.focusBtn2.frame = CGRectMake(250, 0, 100, 44);
+    self.focusBtn2.center = CGPointMake(350, 220);
+    self.focusBtn2.backgroundColor = [UIColor yellowColor];
+    [self.focusBtn2 addTarget: hostDelegate action: @selector(setFocusButtonTouched2:) forControlEvents: UIControlEventPrimaryActionTriggered];
+    [self.view addSubview: self.focusBtn2];
+
+    self.textField1 = [[UITextField alloc] initWithFrame:CGRectMake(20, 40, 150, 30)];
+    self.textField1.borderStyle = UITextBorderStyleRoundedRect;
+    self.textField1.placeholder = @"Text Field 1";
+    [self.view addSubview: self.textField1];
+
+    self.textField2 = [[UITextField alloc] initWithFrame:CGRectMake(250, 40, 150, 30)];
+    self.textField2.borderStyle = UITextBorderStyleRoundedRect;
+    self.textField2.placeholder = @"Text Field 2";
+    [self.view addSubview: self.textField2];
 }
 
 - (void)didReceiveMemoryWarning
@@ -140,6 +179,7 @@ AppDelegate* hostDelegate = NULL;
 int gArgc = 0;
 char** gArgv = nullptr;
 NSDictionary* appLaunchOpts;
+int cc = 0;
 
 
 @implementation AppDelegate
@@ -168,7 +208,7 @@ NSDictionary* appLaunchOpts;
     [self.window makeKeyAndVisible];
 }
 
-// Add by lijia
+// Change unity window size
 - (void) changeUnityWindowSize:(NSString*)reason x:(int)x y:(int)y w:(int)w h:(int)h
 {
     if(![self unityIsInitialized]) {
@@ -178,8 +218,28 @@ NSDictionary* appLaunchOpts;
     
     UnityAppController* uac = [[self ufw] appController];
     UnityView* unityView = [uac unityView];
-    ((UIView* )unityView).frame = CGRectMake(x, y, w, h);
+    
+    CGRect rc = CGRectMake(x, y, w, h);
+
+    // set background color to check unity window size
+    uac.window.backgroundColor = [UIColor greenColor];
+    
+    // Do not set window & unityView size at same time. It will make them un-matched with each other. Because .frame will set to all subViews.
+    uac.window.frame = rc;
 }
+
+// Debug command
+- (void) sendDebugCmdToApp:(NSString*)reason cmd:(NSString*)cmd parameters:(NSString*)parameters
+{
+    NSLog(@"sendDebugCmdToApp: %s, %s, %s", [reason UTF8String], [cmd UTF8String], [parameters UTF8String]);
+}
+
+// Set focus to which View
+- (void) setViewFocus:(NSString*)reason view:(NSString*)view focus:(bool)focus
+{
+    [self focusAppView:reason view:view focus:focus];
+}
+
 
 - (void)sendMsgToUnity
 {
@@ -219,13 +279,34 @@ NSDictionary* appLaunchOpts;
     [[self ufw] setDataBundleId: "com.unity3d.framework"];
     [[self ufw] registerFrameworkListener: self];
     [NSClassFromString(@"FrameworkLibAPI") registerAPIforNativeCalls:self];
-    
+        
     [[self ufw] runEmbeddedWithArgc: gArgc argv: gArgv appLaunchOpts: appLaunchOpts];
+
+    // First Solution: Try to move Unity View into App UIWindow.
+    // add by lijia
+    // This work did not to finish because meeting some fault at focus.
+//    UnityAppController *unityAppController = [self ufw].appController;
+//    UIViewController* urvc = unityAppController.rootViewController;
+////    id<UIApplicationDelegate> unityAppController = [self ufw].appController;
+////    [self.viewController addChildViewController:urvc];
+//    CGRect urf = CGRectMake(20, 300, 300, 300);
+//    urvc.view.frame = urf;
+//    [self.viewController.view addSubview:urvc.view];
+//    [urvc didMoveToParentViewController:self.viewController];
     
+//    [self.viewController addChildViewController:(UIViewController *)[self ufw].appController];
+//    let cv = self.viewController.view;
+//    self.viewController.view.addSubview(((UIViewController *)[self ufw].appController).view);
+
     // set quit handler to change default behavior of exit app
     [[self ufw] appController].quitHandler = ^(){ NSLog(@"AppController.quitHandler called"); };
     
-    auto view = [[[self ufw] appController] rootView];
+//    auto view = [[[self ufw] appController] rootView];
+    auto view = self.viewController.view;
+    
+    // Add for first solution.
+//    [view removeFromSuperview];
+//    [self.viewController.view addSubview:view];
     
     if(self.showUnityOffButton == nil) {
         self.showUnityOffButton = [UIButton buttonWithType: UIButtonTypeSystem];
@@ -313,9 +394,74 @@ NSDictionary* appLaunchOpts;
 
     UnityAppController* uac = [[self ufw] appController];
     UnityView* unityView = [uac unityView];
-    ((UIView* )unityView).frame = CGRectMake(10, 150, 300, 300);
+    CGRect rc = CGRectMake(10, 150, 300, 300);
+    
+    [self changeUnityWindowSize:@"appButton" x:10 y:150 w:300 h:300];
+
+//    ((UIView* )[uac rootView]).frame = rc;
+//    ((UIViewController* )[uac rootViewController]).view.frame = rc;
+    
+
+    //    ((UIView* )unityView).frame = CGRectMake(10, 150, 300, 300);
 //    UIView* uiView = [uas view]
 }
+
+- (void)removeFocusButtonTouched:(UIButton *)sender
+{
+    [self focusAppView:@"App De-Focus" view:@"" focus:true];
+}
+
+- (void)setFocusButtonTouched1:(UIButton *)sender
+{
+    [self focusAppView:@"App Set Focus 1" view:@"TextField1" focus:true];
+}
+
+- (void)setFocusButtonTouched2:(UIButton *)sender
+{
+    [self focusAppView:@"App Set Focus 2" view:@"TextField2" focus:true];
+}
+
+- (UIView *)findFirstResponder
+{
+    UIView *firstResponder = nil;
+    UIWindow *keyWindow = [[UIApplication sharedApplication] keyWindow];
+    if (keyWindow != nil) {
+        firstResponder = [keyWindow performSelector:@selector(firstResponder)];
+    }
+    return firstResponder;
+}
+
+- (void)focusAppView:(NSString*)reason view:(NSString*)view focus:(bool)focus
+{
+    UIView* uiView = nil;
+    if ([view isEqualToString:@"TextField1"]) {
+        uiView = self.viewController.textField1;
+    } else if ([view isEqualToString:@"TextField2"]) {
+        uiView = self.viewController.textField2;
+    } else if ([view isEqualToString:@""]) {
+        // Remove focus
+        UIView* curResponder = [self findFirstResponder];
+        [curResponder resignFirstResponder];
+        return;
+    } else {
+        @throw [NSException exceptionWithName:@"Set focus failed" reason:@"Undefined view" userInfo:nil];
+    }
+    
+    [uiView becomeFirstResponder];
+    [self.window makeKeyWindow];
+    return;
+    
+    // To learn
+    self.viewController.textField1.becomeFirstResponder;
+    UnityAppController* uac = [[self ufw] appController];
+//    UIWindow *uiw = ((UIWindow*)((UIViewController* )[uac rootViewController]).view);
+    [uac.window makeKeyAndVisible];
+    [self.window makeKeyAndVisible];
+//    UIWindow *uiw = ((UIWindow*)((UIViewController* )[uac.window]).window);
+//    [uiw makeKeyAndVisible];
+    
+}
+
 
 - (void)applicationWillResignActive:(UIApplication *)application { [[[self ufw] appController] applicationWillResignActive: application]; }
 - (void)applicationDidEnterBackground:(UIApplication *)application { [[[self ufw] appController] applicationDidEnterBackground: application]; }

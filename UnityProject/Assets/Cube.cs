@@ -8,10 +8,16 @@ using UnityEngine;
 #if UNITY_IOS || UNITY_TVOS
 public class NativeAPI {
     [DllImport("__Internal")]
+    public static extern void sendDebugCmdToApp(string reason, string cmd, string parameters);
+
+    [DllImport("__Internal")]
     public static extern void showHostMainWindow(string lastStringColor);
 
     [DllImport("__Internal")]
     public static extern void changeUnityWindowSize(string reason, int x, int y, int w, int h);
+
+    [DllImport("__Internal")]
+    public static extern void setViewFocus(string reason, string view, bool focus);
 }
 #endif
 
@@ -41,6 +47,24 @@ public class Cube : MonoBehaviour
         else GetComponent<Renderer>().material.color = Color.black;
     }
 
+
+    void sendDebugCmdToApp(string reason, string cmd, string parameters)
+    {
+#if UNITY_ANDROID
+        try
+        {
+            AndroidJavaClass jc = new AndroidJavaClass("com.company.product.OverrideUnityActivity");
+            AndroidJavaObject overrideActivity = jc.GetStatic<AndroidJavaObject>("instance");
+            overrideActivity.Call("sendDebugCmdToApp", cmd, parameters);
+        } catch(Exception e)
+        {
+            appendToText("Exception during sendDebugCmdToApp");
+            appendToText(e.Message);
+        }
+#elif UNITY_IOS || UNITY_TVOS
+        NativeAPI.sendDebugCmdToApp(reason, cmd, parameters);
+#endif
+    }
 
     void showHostMainWindow()
     {
@@ -78,17 +102,65 @@ public class Cube : MonoBehaviour
 #endif
     }
 
+    void setViewFocus(string reason, string view, bool focus)
+    {
+#if UNITY_ANDROID
+        try
+        {
+            AndroidJavaClass jc = new AndroidJavaClass("com.company.product.OverrideUnityActivity");
+            AndroidJavaObject overrideActivity = jc.GetStatic<AndroidJavaObject>("instance");
+            overrideActivity.Call("setViewFocus", view, focus);
+        } catch(Exception e)
+        {
+            appendToText("Exception during setViewFocus");
+            appendToText(e.Message);
+        }
+#elif UNITY_IOS || UNITY_TVOS
+        NativeAPI.setViewFocus(reason, view, focus);
+#endif
+    }
+
     void OnGUI()
     {
-        GUIStyle style = new GUIStyle("button");
-        style.fontSize = 30;        
-        if (GUI.Button(new Rect(10, 10, 200, 100), "Red", style)) ChangeColor("red");
-        if (GUI.Button(new Rect(10, 110, 200, 100), "Blue", style)) ChangeColor("blue");
-        if (GUI.Button(new Rect(10, 300, 400, 100), "Show Main With Color", style)) showHostMainWindow();
+        int maxLine = 20;
+        GUIStyle customStyle = new GUIStyle("button");
+        customStyle.fontSize = (int)(Screen.height / maxLine);
+        GUI.skin.button = customStyle;
+        
+        GUILayout.Label("Test in Unity");
+        GUILayout.BeginVertical("box");
+        {
+            if (GUILayout.Button("Red")) ChangeColor("red");
+            if (GUILayout.Button("Blue")) ChangeColor("blue");
+        }
+        GUILayout.EndVertical();
 
-        if (GUI.Button(new Rect(10, 400, 400, 100), "Unload", style)) Application.Unload();
-        if (GUI.Button(new Rect(440, 400, 400, 100), "Quit", style)) Application.Quit();
-        if (GUI.Button(new Rect(10, 500, 400, 100), "WinSize", style)) changeUnityWindowSize("From unity", 50, 250, 400, 400);
+        GUILayout.Label("Unity VM");
+        GUILayout.BeginVertical("box");
+        {
+            if (GUILayout.Button("Show Main With Color")) showHostMainWindow();
+
+            if (GUILayout.Button("Unload")) Application.Unload();
+            if (GUILayout.Button("Quit")) Application.Quit();
+        }
+        GUILayout.EndVertical();
+
+        GUILayout.Label("Interact");
+        GUILayout.BeginVertical("box");
+        {
+            if (GUILayout.Button("Debug")) sendDebugCmdToApp("Test", "setFocus", "50,250,200,200");
+            if (GUILayout.Button("ChgUnityWindowSize")) changeUnityWindowSize("From unity", 50, 250, 400, 400);
+        }
+        GUILayout.EndVertical();
+
+        GUILayout.Label("Focus");
+        GUILayout.BeginVertical("box");
+        {
+            if (GUILayout.Button("ClearFocus")) setViewFocus("From unity", "", true);
+            if (GUILayout.Button("FocusText1")) setViewFocus("From unity", "TextField1", true);
+            if (GUILayout.Button("FocusText2")) setViewFocus("From unity", "TextField2", true);
+        }
+        GUILayout.EndVertical();
     }
 }
 

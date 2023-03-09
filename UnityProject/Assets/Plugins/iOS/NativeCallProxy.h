@@ -6,9 +6,15 @@
 // NativeCallsProtocol defines protocol with methods you want to be called from managed
 @protocol NativeCallsProtocol
 @required
+// Debug command  
+- (void) sendDebugCmdToApp:(NSString*)reason cmd:(NSString*)cmd parameters:(NSString*)parameters;
+
+// Show App Window
 - (void) showHostMainWindow:(NSString*)color;
-// other methods
+// Change unity window size
 - (void) changeUnityWindowSize:(NSString*)reason x:(int)x y:(int)y w:(int)w h:(int)h;
+// Set focus to which View 
+- (void) setViewFocus:(NSString*)reason view:(NSString*)view focus:(bool)focus;
 @end
 
 __attribute__ ((visibility("default")))
